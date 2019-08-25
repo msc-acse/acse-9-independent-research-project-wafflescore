@@ -1,4 +1,4 @@
-from minisom_master.minisom import MiniSom, asymptotic_decay
+from minisom import MiniSom, asymptotic_decay
 
 #import importlib.util
 #spec = importlib.util.spec_from_file_location("minisom", "./minisom-master/minisom.py")
@@ -9,11 +9,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 
+from skimage.morphology import watershed
+from skimage.feature import peak_local_max
+from skimage import measure
+from skimage.segmentation import random_walker
+from scipy import ndimage
+
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import log_loss
+from sklearn.metrics import calinski_harabaz_score as cal_har_sc
 
 from skimage import filters
 from skimage import measure
@@ -22,7 +29,7 @@ from collections import Counter
 
 from timeit import default_timer as timer
 import random
-from MiscHelpers import save_model
+from MiscHelpers import save_model, ext_eval_entropy, int_eval_silhouette
 
 
 def compute_dim(num_sample):
@@ -53,7 +60,27 @@ def compute_dim(num_sample):
 
 
 def som_assemble(in_data, seed, dim, lr=0.5, sigma=2.5):
-    
+    """Initialize the SOMs model for training
+
+    Parameters
+    ----------
+    in_data : np.array
+        [description]
+    seed : integer
+        random seed for reproducibility
+    dim : int
+        dimension of the SOMs distance matrix
+    lr : float, optional
+        learning rate, by default 0.5
+    sigma : float, optional
+        spread of the neighborhood function, by default 2.5
+
+    Returns
+    -------
+    minisom.MiniSom
+        an object of Minisom class, see minisom.py for further details
+    """
+
     # Initialization som and weights
     num_features = np.shape(in_data)[1]
     som = MiniSom(dim, dim, num_features, sigma=sigma, learning_rate=lr,
@@ -85,41 +112,32 @@ def plot_som(som, norm_data, label, save=False, model_name='temp'):
     plt.show()
 
 
-def save_som(som, model_name, dim_x, dim_y, it, lr, sigma, et,
-             report=None, c_matrix=None, grid=False, rand=False):
+def save_som_report(som, model_name, it, et, report=None,
+                    type=''):
 
     param_vals = str(model_name) + '\n---' + \
-             '\ndim,' + str(dim_x) + ' x ' + str(dim_y) + \
              '\niterations,' + str(it) + \
-             '\nlearning rate,' + str(lr) + \
-             '\nsigma,' + str(sigma) + \
              '\nelapsed time,' + str(et) + '\n\n'
 
-#    save report to file
+    # save report to file
     fdir, mode = '', ''
-    if(grid):
-        fdir = 'SOMs_results/grid_search/gridsearch_report.csv'
+    if(type == 'grid'):
+        fdir = model_name + '_gridsearch_report.csv'
         mode = 'a+'
-    elif(rand):
-        fdir = 'SOMs_results/random_search/randomsearch_report.csv'
+    elif(type == 'rand'):
+        fdir = model_name + '_randomsearch_report.csv'
         mode = 'a+'
     else:
-        fdir = 'SOMs_results/' + model_name + '_report.csv'
+        fdir = model_name + type + '_report.csv'
         mode = 'w'
     f1 = open(fdir, mode)
     f1.write(param_vals)
 
-    if(grid or rand):
-        f1.write(report)
-        f1.write('\nConfusion Matrix\n')
-        np.savetxt(f1, c_matrix, fmt='%i', delimiter=",")
+    if(type == 'grid' or type == 'rand'):
+        f1.write(str(report))
     f1.write('\n\n--------------------\n\n')
     f1.close()
     print('Report saved at:', fdir)
-
-#    pickle the model
-    fdir = 'SOMs_results/' + model_name + '_model.p'
-    save_model(som, fdir)
 
 
 def som_lloss(y_pred, y_actual, n_class):
@@ -152,7 +170,7 @@ def gen_report(som, norm_data, label, n_class, gen_train=False,
                   "\n" + str(test_report) + \
                   "\n" + str(test_c_matrix) + \
                   "\nLogloss=" + str(lloss_test) + \
-                  "\nOverall probability=" + str(np.exp(-lloss_test)) + \
+                  "\nOverall probability=" + str(np.exp(-1 * lloss_test)) + \
                   "\nAccuracy=" + str(test_acc)
 
     if(gen_train):
@@ -166,7 +184,7 @@ def gen_report(som, norm_data, label, n_class, gen_train=False,
                        "\n" + str(train_report) + \
                        "\n" + str(train_c_matrix) + \
                        "\nLogloss=" + str(lloss_train) + \
-                       "\nOverall probability=" + str(np.exp(-lloss_train)) + \
+                       "\nOverall probability=" + str(np.exp(-1 * lloss_train)) + \
                        "\nAccuracy=" + str(train_acc)
 
     if(log_print):
@@ -175,25 +193,49 @@ def gen_report(som, norm_data, label, n_class, gen_train=False,
     return full_report
 
 
-def histedges_equalN(x, nbin):
-    npt = len(x)
+def histedges_equalN(data, nbin=10):
+    """generates a histogram where each bin will contain the same number of
+       data points
+
+    Parameters
+    ----------
+    data : np.array or list
+        data array
+    nbin : int
+        number of bins to populate, by default 10
+
+    Returns
+    -------
+    np.array
+        
+    """
+    npt = len(data)
     return np.interp(np.linspace(0, npt, nbin + 1),
                      np.arange(npt),
-                     np.sort(x))
+                     np.sort(data))
 
 
-def plot_u_matrix(som, plot=False):
+def plot_u_matrix(som_u_mat):
+    """Plots the distance map / u-matrix of the SOMs
 
-    image = som.distance_map().T
+    Parameters
+    ----------
+    som : numpy.ndarray
+        the distance map / u-matrix
 
-    if(plot):
-        f_image = image.flatten()
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-        fig
-        ax1.pcolor(som.distance_map().T, cmap='bone_r')
-        hist = plt.hist(f_image, histedges_equalN(f_image, 10), density=True)
+    Returns
+    -------
+    numpy.ndarray
+        numpy array of all the histogram bins
+    """
 
-    return image, hist[1]
+    f_image = som_u_mat.flatten()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    fig.show()
+    ax1.pcolor(som_u_mat, cmap='bone_r')
+    hist = plt.hist(f_image, histedges_equalN(f_image, 10), density=True)
+
+    return hist[1]
 
 
 def neuron_map(som, norm_data):
@@ -204,12 +246,12 @@ def neuron_map(som, norm_data):
     return np.array(n_map)
 
 
-def gen_e_model(n_map, som_label, x, z):
+def gen_e_model(n_map, som_label):
     som_class = []
     for i in range(len(n_map)):
         som_class.append(som_label[n_map[i][0]][n_map[i][1]])
 
-    return som_class
+    return np.array(som_class)
 
 
 def plot_class_som(som, norm_data, som_label):
@@ -221,64 +263,116 @@ def plot_class_som(som, norm_data, som_label):
     return som_class
 
 
-def closest_n(som_label):
-    borders = np.array(np.where(som_label == 0)).T
-    new_label = np.array(som_label)
+def closest_n(label):
+    """Assign cluster number to the border indexes by using the 
+       closest neighbor's label
 
-    vals = np.where(som_label != 0)
+    Parameters
+    ----------
+    label : numpy.ndarray
+        numpy array of the cluster label, noted that the borders are labeled
+        with 0
+
+    Returns
+    -------
+    numpy.ndarray
+        new label with all the border index populated
+    """
+    borders = np.array(np.where(label == 0)).T
+    new_label = np.array(label)
+
+    vals = np.where(label != 0)
     vals = np.array(vals).T
 
     for b in borders:
         distance.cdist([b], vals)
         c_idx = distance.cdist([b], vals).argmin()
-        cl = som_label[vals[c_idx, 0]][vals[c_idx, 1]]
+        cl = label[vals[c_idx, 0]][vals[c_idx, 1]]
 
-#         print(b, 'is nearest to', vals[c_idx], 'with class=', cl)
         new_label[b[0], b[1]] = cl
 
     return new_label
 
 
-def watershed_level(image, bins, border_width=0.1, plot=False):
+def watershed_level(image, bins, border_width=0.1, plot=False, conn=None):
     num_bins = len(bins)
-    fig, axes = plt.subplots(ncols=4, nrows=num_bins, figsize=(12, num_bins*3),
-                             sharex=True, sharey=True)
-    ax = axes.ravel()
-    mask = []
-    all_label = []
+    """Computes and classify the SOM's u-matrix or total gradient using 
+    watershed classification method
 
-    mask2 = []
-    all_label2 = []
+    Parameters
+    ----------
+    image : numpy.ndarray
+        u-matrix or total gradient of the SOMs
+    bins : numpy.ndarray
+        numpy array of the 
+    plot : bool, optional
+        [description], by default False
+    conn : [type], optional
+        [description], by default None
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    ncols = 6
+    if(plot):
+        fig, axes = plt.subplots(ncols=ncols, nrows=num_bins,
+                                 figsize=(12, num_bins*3),
+                                 sharex=True, sharey=True)
+
+        ax = axes.ravel()
+    all_label = np.zeros((num_bins * ncols, image.shape[0], image.shape[1]))
 
     for i in range(num_bins):
         val = filters.threshold_local(image, block_size=3 + 2*i)
+        block_mask = (image < val)
+        markers = measure.label(block_mask, connectivity=conn)
+        all_label[i*ncols] = closest_n(markers) - 1
+        all_label[i*ncols + 1] = KNN(markers) - 1
+        all_label[i*ncols + 2] = random_walker(image, markers)
+        if(plot):
+            ax[i*ncols].imshow(all_label[i*ncols + 0], origin='lower')
+            ax[i*ncols].title.set_text('b_cn: it={} n_class={}'.format(i,
+                                       len(np.unique(all_label[i*ncols + 0]))))
+            ax[i*ncols + 1].imshow(all_label[i*ncols + 1], origin='lower')
+            ax[i*ncols + 1].title.set_text('b_knn: it={} n_class={}'.format(i,
+                                           len(np.unique(all_label[i*ncols + 1]))))
+            ax[i*ncols + 2].imshow(all_label[i*ncols + 2], origin='lower')
+            ax[i*ncols + 2].title.set_text('b_rw: it={} n_class={}'.format(i,
+                                           len(np.unique(all_label[i*ncols + 2]))))
 
-        mask.append(image < val)
-        ax[i*4].imshow(mask[i], cmap=plt.cm.gray, origin='lower')
-        all_label.append(measure.label(mask[i]))
-#         all_label[i] = KNN(all_label[i])
-        all_label[i] = closest_n(all_label[i])
-        ax[i*4 + 1].imshow(all_label[i], origin='lower')
-        ax[i*4 + 1].title.set_text('it={} n_class={}'.format(i,
-                                   np.unique(all_label[i])[-1]))
+        thres_mask = (image <= bins[i])
+        markers = measure.label(thres_mask, connectivity=conn)
+        all_label[i*ncols + 3] = closest_n(markers) - 1
+        try:
+            all_label[i*ncols + 4] = KNN(markers) - 1
+        except:
+            print('error on knn')
+            return markers
+        all_label[i*ncols + 5] = random_walker(image, markers)
+        if(plot):
+            ax[i*ncols + 3].imshow(all_label[i*ncols + 3], origin='lower')
+            ax[i*ncols + 3].title.set_text('b_cn: it={} n_class={}'.format(i,
+                                           len(np.unique(all_label[i*ncols + 3]))))
+            ax[i*ncols + 4].imshow(all_label[i*ncols + 4], origin='lower')
+            ax[i*ncols + 4].title.set_text('b_knn: it={} n_class={}'.format(i,
+                                           len(np.unique(all_label[i*ncols + 4]))))
+            ax[i*ncols + 5].imshow(all_label[i*ncols + 5], origin='lower')
+            ax[i*ncols + 5].title.set_text('b_rw: it={} n_class={}'.format(i,
+                                           len(np.unique(all_label[i*ncols + 5]))))
 
-        mask2.append(image <= bins[i])
-        ax[i*4 + 2].imshow(mask2[i], cmap=plt.cm.gray, origin='lower')
-        all_label2.append(measure.label(mask2[i]))
-#         all_label2[i] = KNN(all_label2[i])
-        all_label2[i] = closest_n(all_label2[i])
-        ax[i*4 + 3].imshow(all_label2[i], origin='lower')
-        ax[i*4 + 3].title.set_text('it={} n_class={}'.format(i,
-                                   np.unique(all_label2[i])[-1]))
-
-    return all_label, all_label2
+    return all_label
 
 
-def KNN(som_label, k=5):
-    borders = np.array(np.where(som_label == 0)).T
-    new_label = np.array(som_label)
+def KNN(value, k=5):
+    borders = np.array(np.where(value == 0)).T
+    new_label = np.array(value)
 
-    vals = np.where(som_label != 0)
+    vals = np.where(value != 0)
+    if(len(vals[0]) < 5):
+        print("Not enough labeled neighbor to perform KNN.")
+        return value
     vals = np.array(vals).T
 
     for b in borders:
@@ -289,7 +383,7 @@ def KNN(som_label, k=5):
         mins_idx = np.array(list(zip(vals[c_idx, 0], vals[c_idx, 1])))
         class_counter = Counter()
         for idx in mins_idx:
-            class_counter[som_label[idx[0], idx[1]]] += 1
+            class_counter[value[idx[0], idx[1]]] += 1
         cl = class_counter.most_common(1)[0][0]
 
         new_label[b[0], b[1]] = cl
@@ -297,18 +391,47 @@ def KNN(som_label, k=5):
     return new_label
 
 
-#def map_new_label(n_map, som_label, x, z):
-#    # check distance map
-#    plt.figure(figsize=(3, 3))
-#    plt.imshow(som_label, origin='lower', cmap='viridis_r')
-#
-#    som_class = plot_class_som(som, norm_data, som_label)
-#    show_new_class(som_class, x, z)
+def eval_ws(in_data, ws_labels, n_map, actual_label=None):
+    len_watershed = ws_labels.shape[0]
+    cluster_labels = np.zeros((len_watershed, len(in_data)))
+    avg_sils = np.full(len_watershed, np.nan)
+    ch_scs = np.full(len_watershed, np.nan)
+
+    if(actual_label is not None):
+        avg_ents = np.full(len_watershed, np.nan)
+        avg_purs = np.full(len_watershed, np.nan)
+
+    for i in range(len_watershed):
+        param = {'watershed idx': i}
+        if(len(np.unique(ws_labels[i])) > 1):
+            cluster_labels[i] = gen_e_model(n_map, ws_labels[i])
+            avg_sils[i] = int_eval_silhouette(in_data, cluster_labels[i],
+                                              method='som_watershed',
+                                              param=param)
+            try:
+                ch_scs[i] = cal_har_sc(in_data, cluster_labels[i])
+            except:
+                ch_scs[i] = -1
+            if(actual_label is not None):
+                avg_ents[i], avg_purs[i] = ext_eval_entropy(actual_label,
+                                                            cluster_labels[i])
+    best_idx = []
+    best_idx.append(np.nanargmax(np.array(avg_sils)))       # closest to 1
+    best_idx.append(np.nanargmax(ch_scs))                   # higher = better
+    if(actual_label is not None):
+        best_idx.append(np.nanargmin(np.array(avg_ents)))   # closest to 0
+        best_idx.append(np.nanargmax(np.array(avg_purs)))   # closest to 1
+
+    return cluster_labels[np.unique(best_idx)]
+
+
+def comp_ttl_grad(u_mat):
+    return 0
 
 
 # parameter tuning
 # grid search
-def grid_search_som(init_num, norm_data, label, seed=10):
+def grid_search_som(init_num, norm_data, label, m_name='', seed=10):
 
     dims = [-5, 0, 5, 10]
     dims += np.array(compute_dim(norm_data.shape[0]))
@@ -319,11 +442,11 @@ def grid_search_som(init_num, norm_data, label, seed=10):
     lr = [0.25, 0.5, 0.75]
     sigma = [1, 2, 2.5, 3, 4]
 
-# # small grid test
-#    dims = [5]
-#    iter_cnts = [10, 20]
-#    lr = [0.75]
-#    sigma = [1]
+    # small grid test
+    # dims = [5]
+    # iter_cnts = [10, 20]
+    # lr = [0.75]
+    # sigma = [1]
 
     test_num = init_num
     X_train, X_test, y_train, y_test = train_test_split(norm_data, label,
@@ -336,11 +459,12 @@ def grid_search_som(init_num, norm_data, label, seed=10):
     best_comb = []
     best_model = ''
 
-    for comb in hyperpara_perm:
+    for i in range(init_num, len(hyperpara_perm)):
+        comb = hyperpara_perm[i]
         print(comb[0], " ", comb[1], " ", comb[2], " ", comb[3])
 
         test_num += 1
-        model_name = 'grid_search/grid_XZ_' + str(test_num)
+        model_name = 'grid_search/g_' + m_name + '_' + str(test_num)
 
         som = som_assemble(X_train, seed, comb[0], lr=comb[2], sigma=comb[3])
 
@@ -362,12 +486,12 @@ def grid_search_som(init_num, norm_data, label, seed=10):
             print('current best acc:', best_acc)
 
         # save the current model
-        plot_som(som, norm_data, label, save=True, model_name=model_name)
+        # plot_som(som, norm_data, label, save=True, model_name=model_name)
         report = classification_report(y_test, y_pred, digits=4)
         c_matrix = confusion_matrix(y_test, y_pred)
 
-        save_som(som, model_name, report, comb[0],  comb[0], comb[1], comb[2],
-                 comb[3], elapsed_time, c_matrix, grid=True)
+        save_som_report(som, model_name, comb[1], elapsed_time, report=report,
+                        type='grid')
     print('Best model found:', best_model)
     print('Best comb found:', best_comb)
     print('Best acc found:', best_acc)
@@ -382,7 +506,7 @@ def gen_param_grid(grid_search_res):
     param_grid = {
         'dim': list(range(min_dim, max_dim+1)),
         'iter_cnt': list(range(g_it - 500, g_it + 500, 200)),
-        'learning_rate': list(np.logspace(np.log10(0.5), np.log10(0.75),
+        'learning_rate': list(np.logspace(np.log10(0.25), np.log10(0.75),
                                           base=10, num=100)),
         'sigma': list(np.linspace(g_sigma-1, g_sigma+1, num=30)),
     }
@@ -391,7 +515,7 @@ def gen_param_grid(grid_search_res):
 
 # random search
 def random_search_som(init_num, norm_data, label, grid_search_res,
-                      seed=10, max_evals=10):
+                      seed=10, max_evals=10, m_name=''):
 
     param_grid = gen_param_grid(grid_search_res)
     test_num = init_num
@@ -411,7 +535,7 @@ def random_search_som(init_num, norm_data, label, grid_search_res,
         print(c_dim, " ", c_it, " ", c_lr, " ", c_sig)
 
         test_num += 1
-        model_name = 'random_search/random_' + str(test_num)
+        model_name = 'random_search/r_' + m_name + '_' + str(test_num)
 
         som = som_assemble(norm_data, seed, c_dim, lr=c_lr, sigma=c_sig)
 
@@ -437,8 +561,8 @@ def random_search_som(init_num, norm_data, label, grid_search_res,
         report = classification_report(y_test, y_pred, digits=4)
         c_matrix = confusion_matrix(y_test, y_pred)
 
-        save_som(som, model_name, c_dim, c_dim, c_it, c_lr, c_sig,
-                 elapsed_time, report, c_matrix, rand=True)
+        save_som_report(som, model_name, c_it, elapsed_time, report=report,
+                        type='rand')
 
     print('Best model found:', best_model)
     print('Best comb found:', best_comb)

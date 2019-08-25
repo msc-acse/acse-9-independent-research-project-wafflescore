@@ -22,8 +22,8 @@ class FCM:
         A: we are using Euclidean distance, so we don't need it actually
         2) compute the means (cluster centers)
         3) update the membership matrix
-        4) compare the new membership with the old one, is difference is less than a threshold, stop. otherwise
-            return to step 2)
+        4) compare the new membership with the old one, is difference is less
+            than a threshold, stop. otherwise return to step 2)
     """
 
     def __init__(self, n_clusters=2, m=2, max_iter=10):
@@ -179,6 +179,15 @@ class FCM:
         for i in range(len(x)):
             sum_of_sq += (x[i]-c[i]) ** 2
         return sum_of_sq
+
+    def SSE(self, X):   # rin_add
+        best_mem = self.u.argmax(axis=1)
+
+        sse = 0
+        for i in range(X.shape[0]):
+            sse += self.distance_squared(X[i],
+                                         self.cluster_centers_[best_mem[i]])
+        return sse
 
     def compute_membership_single(self, X, datapoint_idx, cluster_idx):
         """

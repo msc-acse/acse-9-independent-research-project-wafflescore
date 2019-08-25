@@ -6,17 +6,18 @@ Created on Fri Jul 19 02:09:50 2019
 @author: laveniier
 """
 
-from fuzzy_c_means_master.fuzzycmeans.fuzzy_clustering import FCM
+from fuzzy_clustering import FCM
 
-from MiscHelpers import save_model, show_new_class, cluster_iden
+from MiscHelpers import save_model, plot_e_model, elbowplot,
+from MiscHelpers import int_eval_silhouette, ext_eval_entropy
 from timeit import default_timer as timer
 import time as tm
-#from fuzzy-c-means-master.fuzzycmeans.fuzzy_clustering import FCM
+# from fuzzy-c-means-master.fuzzycmeans.fuzzy_clustering import FCM
 
-#import importlib.util
-#spec = importlib.util.spec_from_file_location("FCM", "./fuzzy-c-means-master/fuzzycmeans/fuzzy_clustering.py")
-#fcm_module = importlib.util.module_from_spec(spec)
-#spec.loader.exec_module(fcm_module)
+# import importlib.util
+# spec = importlib.util.spec_from_file_location("FCM", "./fuzzy-c-means-master/fuzzycmeans/fuzzy_clustering.py")
+# fcm_module = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(fcm_module)
 
 
 def fcm_compute(in_data, n_clusters, model_name="", save=False):
@@ -26,12 +27,12 @@ def fcm_compute(in_data, n_clusters, model_name="", save=False):
     predicted_mem = fcm.predict(in_data)
     stop = timer()
 
-    print("elapsed time:", stop - start)
+    print("FCM elapsed time:", stop - start)
 
     if(save):
         # pickle the model
-        timestr = tm.strftime("%Y%m%d-%H%M%S")
         if(model_name == ""):
+            timestr = tm.strftime("%Y%m%d-%H%M%S")
             model_name = timestr
         fdir = 'FCM_results/' + model_name + '_model.p'
         save_model(fcm, fdir)
@@ -39,49 +40,75 @@ def fcm_compute(in_data, n_clusters, model_name="", save=False):
     return fcm, predicted_mem
 
 
-def plot_fuzzy(predicted_mem, x, z, save_name=""):
+def plot_fcm(predicted_mem, x, z, save_name=""):
     for i in range(predicted_mem.shape[1]):
         if(save_name != ""):
             save_dir = 'FCM_results/' + save_name + '_pclass_' + \
                        str(i) + '.png'
-            show_new_class(predicted_mem[:, i], x, z, cmap='Blues',
-                           save_dir=save_dir)
+            plot_e_model(predicted_mem[:, i], x, z, cmap='Blues',
+                         save_dir=save_dir)
         else:
-            show_new_class(predicted_mem[:, i], x, z, cmap='Blues')
+            plot_e_model(predicted_mem[:, i], x, z, cmap='Blues')
 
 
-def get_best_fuzz(mem_preds):
-    y_pred = mem_preds.argmax(axis=1)
+def get_best_fuzz(predicted_mem):
+    y_pred = predicted_mem.argmax(axis=1)
     return y_pred
 
 
-def plot_best_fuzz(mem_preds, x, z, save_name=""):
-    y_pred = get_best_fuzz(mem_preds)
+def plot_best_fuzz(predicted_mem, x, z, save_name=""):
+    y_pred = get_best_fuzz(predicted_mem)
 
     if(save_name != ""):
         save_dir = 'FCM_results/' + save_name + '_bestFuzz_plot.png'
-        show_new_class(y_pred, x, z, save_dir=save_dir, sep_label=True)
+        plot_e_model(y_pred, x, z, save_dir=save_dir, sep_label=True)
     else:
-        show_new_class(y_pred, x, z, sep_label=True)
+        plot_e_model(y_pred, x, z, sep_label=True)
 
     return y_pred
 
 
-def iter_n_class(in_data, in_range, x, z, label=None, m_name=""):
+def iter_n_class(in_data, in_range, m_name="", save=False, label=None):
+    """Iterates number of cluster in FCM to plot the elbow
+    
+    Parameters
+    ----------
+    in_data : numpy.ndarray
+        [description]
+    in_range : class 'range'
+        the range of number of clusters to iterate through
+    x : numpy.ndarray / list
+        list like array of x position
+    z : numpy.ndarray / list
+        list like array of z position
+    m_name : str, optional
+        model name, by default ""
+    save : bool, optional
+        flag whether to save the model, by default False
+    label : numpy.ndarray
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     fcms = []
     pred_mems = []
+    SSE = []
     for c in in_range:
         model_name = m_name + '_nclass_' + str(c)
-        fcm, pred_mem = fcm_compute(in_data, c, model_name, save=True)
+        fcm, pred_mem = fcm_compute(in_data, c, model_name, save=save)
         fcms.append(fcm)
         pred_mems.append(pred_mem)
+        SSE.append(fcm.SSE(in_data))
         y_pred = get_best_fuzz(pred_mem)
 
-        if(label is not None):
-            _, _, _, acc = cluster_iden(label, y_pred)
-            print(model_name, " accucacy =", acc)
+        if(save):
+            save_dir = 'FCM_results/' + model_name + '_plot.png'
+            plot_e_model(y_pred, x, z, save_dir=save_dir)
+        else:
+            plot_e_model(y_pred, x, z)
 
-        save_dir = 'FCM_results/' + model_name + '_plot.png'
-        show_new_class(y_pred, x, z, save_dir=save_dir)
+    elbowplot(in_range, SSE)
 
-    return fcms, pred_mems
+    return fcms, pred_mems, SSE

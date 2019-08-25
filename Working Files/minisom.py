@@ -131,6 +131,15 @@ class MiniSom(object):
         self._weights = self._random_generator.rand(x, y, input_len)*2-1
         self._class_assignments = defaultdict(list)
 
+        # rin_add
+        self._hyperparas = {'random_seed': random_seed,
+                            'learning_rate': self._learning_rate,
+                            'sigma': self._sigma,
+                            'input_length': self._input_len,
+                            'neig_function': neighborhood_function,
+                            'dimension': (x, y),
+                            'decay_function': decay_function}
+
         for i in range(x):
             for j in range(y):
                 # normalization
@@ -398,6 +407,13 @@ class MiniSom(object):
             winmap[self.winner(x)].append(x)
         return winmap
 
+    def neuron_map(self, data):     # rin_add
+        self._check_input_len(data)
+        winmap = []
+        for x in data:
+            winmap.append(self.winner(x))
+        return array(winmap)
+
     def labels_map(self, data, labels):
         """Returns a dictionary wm where wm[(i,j)] is a dictionary
         that contains the number of samples from a given label
@@ -445,6 +461,12 @@ class MiniSom(object):
                 result.append(default_class)
         return result
 
+    # rin_add
+    def get_hyperpara(self):
+        """Returns a dictionary of the hyperparameters used to initialize
+        the current Minisom object.
+        """
+        return self._hyperparas
 
 class TestMinisom(unittest.TestCase):
     def setUp(self):
