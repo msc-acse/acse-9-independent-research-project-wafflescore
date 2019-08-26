@@ -408,6 +408,7 @@ class MiniSom(object):
         return winmap
 
     def neuron_map(self, data):     # rin_add
+        """Returns an array of the winner neuron of the inputted data"""
         self._check_input_len(data)
         winmap = []
         for x in data:
@@ -467,6 +468,7 @@ class MiniSom(object):
         the current Minisom object.
         """
         return self._hyperparas
+
 
 class TestMinisom(unittest.TestCase):
     def setUp(self):

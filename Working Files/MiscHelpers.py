@@ -1,4 +1,4 @@
-import pickle
+from pickle import dump, load
 import matplotlib.pyplot as plt
 import numpy as np
 from seaborn import heatmap
@@ -7,15 +7,15 @@ import matplotlib.cm as cm
 
 from sklearn.metrics import confusion_matrix, accuracy_score, silhouette_samples, silhouette_score
 
-from scipy import stats
+from scipy.stats import entropy
 
 
-def load_model(filepath):
+def load_model(file_path):
     """Function to load trained ML model
 
     Parameters
     ----------
-    filepath : string
+    file_path : string
         File path to the ML model
 
     Returns
@@ -23,12 +23,12 @@ def load_model(filepath):
     object
         Depends on the model loaded
     """
-    loaded_model = pickle.load(open(filename, 'rb'))
+    loaded_model = load(open(file_path, 'rb'))
     return loaded_model
 
 
 def plot_e_model(value, x, z, title="", figsize=(12, 6),
-                 cmap='viridis', save_dir="", sep_label=False):
+                 cmap='viridis', save_path="", sep_label=False):
     """Function to plot the Earth model
 
     Parameters
@@ -45,7 +45,7 @@ def plot_e_model(value, x, z, title="", figsize=(12, 6),
         size of the displayed figure, by default (12, 6)
     cmap : str, optional
         color map name used for plotting, by default 'viridis'
-    save_dir : str, optional
+    save_path : str, optional
         plot's save directory, by default ""
     sep_label : bool, optional
         flag to separate the label on the color bar, by default False
@@ -62,19 +62,18 @@ def plot_e_model(value, x, z, title="", figsize=(12, 6),
         sctr = ax.scatter(x=x, y=z, c=value, cmap=cmap)
         plt.colorbar(sctr, ax=ax)
 
-    ax.invert_yaxis()
+    ax.invert_yaxis()   # invert axis since z is by depth
     plt.title(title)
     plt.show()
 
-    if(save_dir):
-        fig.savefig(save_dir)
-        print('Plot saved at:', save_dir)
+    if(save_path):
+        fig.savefig(save_path)
+        print('Plot saved at:', save_path)
 
 
 def cluster_iden(label, pred, x=None, z=None, plot=False):
 
     cm2 = confusion_matrix(label, pred)
-    # plot_cm(cm2)
     class_map2 = cm2.argmax(axis=0)
     print('class map2', class_map2)
     comb_pred = np.zeros_like(pred)
@@ -94,40 +93,34 @@ def cluster_iden(label, pred, x=None, z=None, plot=False):
     return class_map2, comb_cm, comb_pred, comb_acc
 
 
-def plot_fields(in_data, X, Z, titles, model=""):
+def plot_fields(in_data, x, z, titles, save_name=""):
     """Plot the field of the input vector
 
     Parameters
     ----------
-    in_data : numpy
-        2d numpy array that contains all the vector value
-    X : array/numpy array
-        x position of the data
-    Z : array/numpy array
-        z position of the data
+    in_data : np.array or list
+        data matrix
+    x : np.array or list
+        x coordinate
+    z : np.array or list
+        z coordinate
     titles : string array
-        the title of each input vector's column
-    model : str, optional
-        the model name which will be used to save the plot, by default ""
+        the title of each column in the data matrix
+    save_name : str, optional
+        the name which will be used to save the plot as png file, by default ""
         which will not save the plot
     """
     for i in range(in_data.shape[1]):
         val = in_data[:, i]
-        save_dir = ""
+        save_path = ""
         if(model):
-            save_dir = 'data/' + model + titles[i] + '.png'
-        plot_e_model(val, X, Z, title=titles[i], figsize=(6, 3),
-                     save_dir=save_dir)
+            save_path = save_name + titles[i] + '.png'
+        plot_e_model(val, x, z, title=titles[i], figsize=(6, 3),
+                     save_path=save_path)
 
 
 def plot_cm(cm):
-    """Plotting the confusion matrix
-
-    Parameters
-    ----------
-    cm : numpy.ndarray
-        2d numpy array of the computed confusion matrix
-    """
+    """Plotting the confusion matrix"""
     df_cm = DataFrame(cm, range(cm.shape[0]), range(cm.shape[1]))
     plt.figure(figsize=(20, 10))
     ax = plt.subplot()
@@ -136,20 +129,20 @@ def plot_cm(cm):
     ax.set_ylabel('True labels')
 
 
-def save_model(model, fdir):
+def save_model(model, save_path):
     """Saves model with pickle
 
     Parameters
     ----------
     model : object
         trained ML model
-    fdir : str
+    save_path : str
         save directory
     """
-    with open(fdir, 'wb') as outfile:
-        pickle.dump(model, outfile)
+    with open(save_path, 'wb') as outfile:
+        dump(model, outfile)
 
-    print('Model saved at:', fdir)
+    print('Model saved at:', save_path)
 
 
 def search_list(in_list, item):
@@ -160,7 +153,7 @@ def search_list(in_list, item):
     in_list : list
         list of all the available properties
     item : str
-        property name to search for
+        name of the property to search
 
     Returns
     -------
@@ -175,8 +168,8 @@ def crossplots(in_data, label, col_name):
 
     Parameters
     ----------
-    in_data : [type]
-        [description]
+    in_data : np.array or list
+        data matrix
     label : list
         class label
     col_name : list of string
@@ -230,18 +223,18 @@ def elbowplot(n_class, sse):
     plt.plot(n_class, sse, 'o-')
 
 
-def ext_eval_entropy(label, pred, save_dir='', init_clus=0):
+def ext_eval_entropy(label, pred, save_path="", init_clus=0):
     """Measures the cluster validity using Entropy and Purity.
     The result will be saved as a csv file.
 
     Parameters
     ----------
-    label : numpy.ndarray
-        [description]
-    pred : numpy.ndarray
-        [description]
-    save_dir : str, optional
-        the file name and direcrory of the output, by default ''
+    label : np.array or list
+        the true label of each data point
+    pred : np.array or list
+        the predicted cluster label
+    save_path : str, optional
+        save directory of the entropy/purity csv file, by default ""
         which will not save the result to file
     init_clus : int, optional
         index of the initial cluster, by default 0
@@ -262,10 +255,10 @@ def ext_eval_entropy(label, pred, save_dir='', init_clus=0):
     idx_x = np.where(np.sum(cm, axis=1) != 0)[0]
     cm = cm[idx_x, :]
 
-    col_sum = np.sum(cm, axis=1)
-    ttl_dtp = np.sum(cm)           # total number of data points
+    col_sum = np.sum(cm, axis=1)    # number of data points in each cluster
+    ttl_dtp = len(pred)             # total number of data points
 
-    entropy = stats.entropy(cm.T)
+    entropy = entropy(cm.T)
     purity = np.max(cm, axis=1) / col_sum
 
     n_class = len(np.unique(label))
@@ -279,38 +272,38 @@ def ext_eval_entropy(label, pred, save_dir='', init_clus=0):
         row_head[i] += str(i + init_clus)
     row_head[-1] = 'Total'
     row_head = np.array(row_head).reshape(cm.shape[0]+1, 1)
-    ss = np.column_stack((cm, entropy))
-    ss = np.column_stack((ss, purity))
+    report = np.column_stack((cm, entropy))
+    report = np.column_stack((report, purity))
 
-    ss = np.vstack((ss, np.sum(ss, axis=0)))
-    ss = np.hstack((row_head, ss))
+    report = np.vstack((report, np.sum(report, axis=0)))
+    report = np.hstack((row_head, report))
 
-    ss[-1, -2] = np.sum((entropy * col_sum) / float(ttl_dtp))
-    ss[-1, -1] = np.sum((purity * col_sum) / float(ttl_dtp))
+    report[-1, -2] = np.sum((entropy * col_sum) / float(ttl_dtp))
+    report[-1, -1] = np.sum((purity * col_sum) / float(ttl_dtp))
 
-    if(save_dir):
+    if(save_path):
         np.set_printoptions(precision=4, suppress=True)
 
-        np.savetxt(save_dir, ss, delimiter=',', fmt='%s', header=header)
-        print("Entropy and precision file saved at: ", save_dir)
+        np.savetxt(save_path, report, delimiter=',', fmt='%s', header=header)
+        print("Entropy and precision file saved at: ", save_path)
 
     # returns average entropy and purity
-    return ss[-1, -2], ss[-1, -1]
+    return report[-1, -2], report[-1, -1]
 
 
-def int_eval_silhouette(in_data, label, method, param, plot=False):
+def int_eval_silhouette(in_data, pred, method, param, plot=False):
     """Measures the cluster validity using silhouette method
 
     Parameters
     ----------
-    in_data : numpy
-        2d numpy array that contains all the vector value
-    label : numpy.ndarray
-        [description]
+    in_data : np.array or list
+        data matrix
+    pred : np.array or list
+        the predicted cluster label
     method : str
         name of the method used
     param : dict
-        dict of the all the parameters and values used for the model
+        dict of the parameters and values used for the model
     plot : bool, optional
         flag whether to plot the silhouette plot or not, by default False
 
@@ -320,12 +313,12 @@ def int_eval_silhouette(in_data, label, method, param, plot=False):
         the average silhouette score, ranges between -1 to 1.
         ideally, the best score is 1
     """
-    n_clusters = len(np.unique(label))
+    n_clusters = len(np.unique(pred))
     if(n_clusters <= 1):
         print("The number of cluster is too low, n_cluster =", n_clusters, "\n"
               "Return an average score of -1 by default.")
         return -1
-    silhouette_avg = silhouette_score(in_data, label)
+    silhouette_avg = silhouette_score(in_data, pred)
     hyperpara = ''
     for k in param.keys():
         hyperpara += k + "=" + str(param[k]) + ', '
@@ -335,17 +328,17 @@ def int_eval_silhouette(in_data, label, method, param, plot=False):
         ax.set_xlim([-1, 1])
 
         # adds space between each cluster's plot
-        ax.set_ylim([0, len(label) + (n_clusters + 1) * 10])
+        ax.set_ylim([0, len(pred) + (n_clusters + 1) * 10])
 
         # Compute the silhouette scores for each sample
-        sample_silhouette_values = silhouette_samples(in_data, label)
+        sample_silhouette_values = silhouette_samples(in_data, pred)
 
         y_lower = 10
         for i in range(n_clusters):
             # Aggregate the silhouette scores for samples belonging to
             # cluster i, and sort them
             ith_cluster_silhouette_values = \
-                sample_silhouette_values[label == i]
+                sample_silhouette_values[pred == i]
 
             ith_cluster_silhouette_values.sort()
 
@@ -365,7 +358,7 @@ def int_eval_silhouette(in_data, label, method, param, plot=False):
 
         ax.set_title("The silhouette plot for the various clusters.")
         ax.set_xlabel("The silhouette coefficient values")
-        ax.set_ylabel("Cluster label")
+        ax.set_ylabel("Cluster prediction label")
 
         # The vertical line for average silhouette score of all the values
         ax.axvline(x=silhouette_avg, color="red", linestyle="--")

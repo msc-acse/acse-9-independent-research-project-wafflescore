@@ -35,15 +35,14 @@ def check_nan_inf(in_data):
 
     Parameters
     ----------
-    in_data : numpy.ndarray
-        2d numpy array where each row represents one data point,
-        the number of columns varies depending on the available properties
+    in_data : np.array or list
+        data matrix
 
     Returns
     -------
-    numpy.ndarray
+    np.array
         numpy array of the index of NaNs
-    numpy.ndarray
+    np.array
         numpy array of the index of infinite
     """
     nan_pos = np.argwhere(np.isnan(in_data))
@@ -59,15 +58,14 @@ def replace_nan_inf(in_data, re_inf=-9999):
 
     Parameters
     ----------
-    in_data : numpy.ndarray
-        2d numpy array where each row represents one data point,
-        the number of columns varies depending on the available properties
+    in_data : np.array or list
+        data matrix
     re_inf : int, optional
         integer number to replace the infinite value, by default -9999
 
     Returns
     -------
-    numpy.ndarray
+    np.array
         numpy array of the input data without NaN and infinite values.
     """
     logging.info("Replacing INF with %d" % re_inf)
@@ -86,11 +84,10 @@ def plot_hist(in_data, label, col_name):
 
     Parameters
     ----------
-    in_data : numpy.ndarray
-        2d numpy array where each row represents one data point,
-        the number of columns varies depending on the available properties
-    label : list / numpy.ndarray
-        list of the corresponding class/cluster of the input data
+    in_data : np.array
+        data matrix
+    label : np.array or list
+        the true label of each data point
     col_name : list of string
         list of the properties presented in the input data
         eg. ['vp', 'vs', 'dn', 'vp/vs', 'qp', 'qs', 'x', 'z']
@@ -132,7 +129,7 @@ def convLabel(in_label):
 
     Parameters
     ----------
-    in_label : numpy.ndarray
+    in_label : np.array
         2d numpy of the class label
 
     Return
@@ -155,7 +152,7 @@ def convData(data_file):
 
     Returns
     -------
-    numpy.ndarray
+    np.array
         2d numpy array
     """
     init_data = []
@@ -198,10 +195,9 @@ def data_cleanup(in_data, water_idx, col_name, re_inf):
 
     Parameters
     ----------
-    init_data : numpy.ndarray
-        2d numpy array where each row represents one data point,
-        the number of columns varies depending on the available data
-    water_idx : list/numpy array
+    init_data : np.array or list
+        data matrix
+    water_idx : np.array or list
         list of all the water index
     col_name : list of string
         list of the properties presented in the input data
@@ -264,16 +260,15 @@ def compMeanStd(in_data):
 
     Parameters
     ----------
-    in_data : numpy.ndarray
-        2d numpy array where each row represents one data point,
-        the number of columns varies depending on the available properties
+    in_data : np.array or list
+        data matrix
 
     Returns
     -------
     list
-        list of each property's mean
+        list of each column's mean
     list
-        list of each property's starndard derivation
+        list of each column's starndard derivation
     """
     means = np.mean(in_data, axis=0)
     stds = np.std(in_data, axis=0)
@@ -286,9 +281,8 @@ def normalize(in_data, means, stds, model=""):
 
     Parameters
     ----------
-    in_data : numpy.ndarray
-        2d numpy array where each row represents one data point,
-        the number of columns varies depending on the available properties
+    in_data : np.array or list
+        data matrix
     means : list
         list of each property's mean
     stds : list

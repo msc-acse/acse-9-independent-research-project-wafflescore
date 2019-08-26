@@ -34,6 +34,9 @@ def main(argv):
     elif(model == 'M6'):
         # Simplified Earth Model -- less temperature anomaly
         output_smooth_npz = np.load('../Synthetic Model/Model6blind/output_fields_smooth.npz')
+    elif(model == 'small'):
+        input_npz = np.load('../Synthetic Model/input_fields.npz')
+        output_smooth_npz = np.load('../Synthetic Model/output_fields_smooth.npz')
     else:
         # invalid model
         print('Invalid model', model)
@@ -44,7 +47,9 @@ def main(argv):
     if(model != 'M6'):
         init_label = convLabel(input_npz['classes'])
     init_data = convData(output_smooth_npz)
-
+    if(model == 'small'):
+        init_data = init_data[:4000]
+        init_label = init_label[:4000]
     # remove water and perform data preprocessing
     water_idx = []
     if(model != 'M6'):
