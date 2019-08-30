@@ -1,3 +1,8 @@
+"""
+Author: Nitchakul Pipitvej
+GitHub: wafflescore
+"""
+
 from pickle import dump, load
 import matplotlib.pyplot as plt
 import numpy as np

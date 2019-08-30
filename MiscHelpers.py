@@ -281,7 +281,7 @@ def ext_eval_entropy(label, pred, save_path="", init_clus=0):
         print("Entropy and precision file saved at: ", save_path)
 
     # returns average entropy and purity
-    return report[-1, -2], report[-1, -1]
+    return float(report[-1, -2]), float(report[-1, -1])
 
 
 def int_eval_silhouette(in_data, pred, method="", param=None, plot=False):

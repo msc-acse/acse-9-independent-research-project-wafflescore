@@ -7,6 +7,9 @@ under the following license:
 The modification was:
     commenting out the logging in order to enable pickling of the object.
 A copy of the license is located in FCM_LICENSE
+
+Author: Nitchakul Pipitvej
+GitHub: wafflescore
 """
 
 import numpy as np

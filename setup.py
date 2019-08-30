@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="acse_9_irp_wafflescore",
-    version="1.0.4",
+    version="1.0.5",
     author="Nitchakul Pipitvej",
     author_email="np2618@ic.ac.uk",
     description="ML for Automatic Facies Classification ",

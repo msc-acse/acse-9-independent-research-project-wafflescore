@@ -1,3 +1,7 @@
+"""
+Author: Nitchakul Pipitvej
+GitHub: wafflescore
+"""
 import random
 from acse_9_irp_wafflescore import MiscHelpers as mh
 import numpy as np

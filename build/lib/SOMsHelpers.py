@@ -1,3 +1,8 @@
+"""
+Author: Nitchakul Pipitvej
+GitHub: wafflescore
+"""
+
 from minisom import MiniSom, asymptotic_decay
 
 import numpy as np

@@ -1,3 +1,8 @@
+"""
+Author: Nitchakul Pipitvej
+GitHub: wafflescore
+"""
+
 from fuzzy_clustering import FCM
 
 from acse_9_irp_wafflescore import MiscHelpers as mh

@@ -8,6 +8,9 @@ The modifications were:
     1. adding _hyperparas in class Minisom for easier parameter listing
     2. adding function get_hyperpara in class Minisom
     3. adding neuron_map methond in class Minisom
+
+Author: Nitchakul Pipitvej
+GitHub: wafflescore
 """
 
 from math import sqrt

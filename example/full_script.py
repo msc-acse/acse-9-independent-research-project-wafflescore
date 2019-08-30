@@ -212,6 +212,39 @@ def test_missing_kmean(in_data, col_name, model="-"):
     logging.info('Data saved at: %s' % sdir)
 
 
+def test_missing_hdbscan(in_data, col_name, model="-"):
+    vp_idx = mh.search_list(col_name, 'vp')
+    vs_idx = mh.search_list(col_name, 'vs')
+    dn_idx = mh.search_list(col_name, 'dn')
+    vpvs_idx = mh.search_list(col_name, 'vp/vs')
+    qp_idx = mh.search_list(col_name, 'qp')
+    # qs_idx = mh.search_list(col_name, 'qs')
+
+    # when the only available data are: Vp, Vs, Vp/Vs
+    test_data_1 = np.squeeze(in_data[:, [vp_idx, vs_idx, vpvs_idx]])
+
+    test1_hdb = test_perform_HDBSCAN(test_data_1)
+    sdir = model + '_test1_rehdb.npy'
+    np.save(sdir, test1_hdb)
+    logging.info('Data saved at: %s' % sdir)
+
+    # when the only available data are: Vp, Qp, Density
+    test_data_2 = np.squeeze(in_data[:, [vp_idx, qp_idx, dn_idx]])
+
+    test2_hdb = test_perform_HDBSCAN(test_data_2)
+    sdir = model + '_test2_rehdb.npy'
+    np.save(sdir, test2_hdb)
+    logging.info('Data saved at: %s' % sdir)
+
+    # when the only available data are: Vp, Vs
+    test_data_3 = np.squeeze(in_data[:, [vp_idx, vs_idx]])
+
+    test3_hdb = test_perform_HDBSCAN(test_data_3)
+    sdir = model + '_test3_rehdb.npy'
+    np.save(sdir, test3_hdb)
+    logging.info('Data saved at: %s' % sdir)
+
+
 def main(argv):
     model = str(argv[0])
     col_name = (argv[1]).split()
@@ -241,6 +274,18 @@ def main(argv):
     #     np.save(sdir, hdb_c)
     #     logging.info('Data saved at: %s' % sdir)
     elif(test_case == "kmean"):
+        test_missing_kmean(norm_data, col_name, model=model)
+
+        kmf = test_perform_kmean(norm_data)
+        sdir = model + '_full_kmn.npy'
+        np.save(sdir, kmf)
+        logging.info('Data saved at: %s' % sdir)
+
+        kml = test_perform_kmean(norm_data[:,:-2])
+        sdir = model + '_no_xz_kmn.npy'
+        np.save(sdir, kml)
+        logging.info('Data saved at: %s' % sdir)
+    elif(test_case == "hdb-rerun"):
         test_missing_kmean(norm_data, col_name, model=model)
 
         kmf = test_perform_kmean(norm_data)
