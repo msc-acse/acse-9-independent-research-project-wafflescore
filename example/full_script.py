@@ -98,6 +98,11 @@ def test_run(in_data, model="", test=""):
     np.save(sdir, test_som_hdb)
     logging.info('Data saved at: %s' % sdir)
 
+    kmf = test_perform_kmean(in_data)
+    sdir = model + '_' + test + '_kmn.npy'
+    np.save(sdir, kmf)
+    logging.info('Data saved at: %s' % sdir)
+
 
 def test_missing_cols(in_data, col_name, model="-"):
     vp_idx = mh.search_list(col_name, 'vp')
@@ -265,27 +270,7 @@ def main(argv):
         test_run(norm_data[:,:-2], model=model, test=test_case)
     elif(test_case == "missing"):
         test_missing_cols(norm_data, col_name, model=model)
-    # elif(test_case == "small"):
-    #     test_missing_cols(norm_data[:200,:], col_name, model='small')
-    # elif(test_case == "somhdb"):
-    #     _, _, hdb_c = test_perform_SOM(norm_data[:400,:])
-    #     print(hdb_c)
-    #     sdir = model + '_' + test_case + '_somhdb.npy'
-    #     np.save(sdir, hdb_c)
-    #     logging.info('Data saved at: %s' % sdir)
     elif(test_case == "kmean"):
-        test_missing_kmean(norm_data, col_name, model=model)
-
-        kmf = test_perform_kmean(norm_data)
-        sdir = model + '_full_kmn.npy'
-        np.save(sdir, kmf)
-        logging.info('Data saved at: %s' % sdir)
-
-        kml = test_perform_kmean(norm_data[:,:-2])
-        sdir = model + '_no_xz_kmn.npy'
-        np.save(sdir, kml)
-        logging.info('Data saved at: %s' % sdir)
-    elif(test_case == "hdb-rerun"):
         test_missing_kmean(norm_data, col_name, model=model)
 
         kmf = test_perform_kmean(norm_data)
