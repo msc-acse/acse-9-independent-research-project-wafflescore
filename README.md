@@ -17,13 +17,14 @@ This project is part of an independent research project for MSc in Applied Compu
 
 # Requirements and Dependencies
 
-- hdbscan>=0.8.22
-- numpy>=1.14.3
-- pandas>=0.23.0
-- seaborn>=0.8.1
-- scikit-learn>=0.19.1
-- scikit-image>=0.13.1
-- scipy>=1.1.0
+- hdbscan==0.8.22
+- numpy==1.14.3
+- pandas==0.23.0
+- seaborn==0.8.1
+- scikit-learn==0.19.1
+- scikit-image==0.13.1
+- scipy==1.1.0
+The listed version may not be the latest release of each libraries and may result in some error when compiling with different version.
 
 # User Guide
 ## Installation
