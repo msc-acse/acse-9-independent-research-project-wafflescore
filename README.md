@@ -12,7 +12,7 @@ CID: 01592487
 
 # Project Information
 
-This project is part of an independent research project for MSc in Applied Computational Science and Engineering, Module ACSE-9, at Imperial College London. The supervisor of this project is Dr. Michele Paulatto.
+This project is part of an independent research project for MSc in Applied Computational Science and Engineering, Module ACSE-9, at Imperial College London. The supervisor of this project is Dr Michele Paulatto.
 
 
 # Requirements and Dependencies
