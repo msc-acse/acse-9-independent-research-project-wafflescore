@@ -25,8 +25,8 @@ This project is part of an independent research project for MSc in Applied Compu
 - scikit-image>=0.13.1
 - scipy>=1.1.0
 
-
-# Installation
+# User Guide
+## Installation
 
 This package can be installed using the command
 
@@ -40,7 +40,10 @@ or simply clone the Git repository on to you machine via web or using the comman
 git clone https://github.com/msc-acse/acse-9-independent-research-project-wafflescore.git
 ```
 
-# Compatibility notes
+## Example
+An example of a simple run of all the methods explored are located in [example](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/working/example) folder. Additional notes and run result are recorded in [Notebooks](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/working/Notebooks).
+
+## Compatibility notes
 This project is built and tested on Python 3.6.5
 
 ## License
