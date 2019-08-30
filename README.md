@@ -24,6 +24,7 @@ This project is part of an independent research project for MSc in Applied Compu
 - scikit-learn==0.19.1
 - scikit-image==0.13.1
 - scipy==1.1.0
+
 The listed version may not be the latest release of each libraries and may result in some error when compiling with different version.
 
 # User Guide
