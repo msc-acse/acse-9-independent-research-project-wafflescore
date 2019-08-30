@@ -41,8 +41,11 @@ or simply clone the Git repository on to you machine via web or using the comman
 git clone https://github.com/msc-acse/acse-9-independent-research-project-wafflescore.git
 ```
 
+## Implementation
+The python code that were developed are located in [build/lib](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/master/build/lib).
+
 ## Example
-An example of a simple run of all the methods explored are located in [example](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/working/example) folder. Additional notes and run result are recorded in [Notebooks](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/working/Notebooks).
+An example of a simple run of all the methods explored are located in [example](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/master/example) folder. Additional notes and run result are recorded in [Notebooks](https://github.com/msc-acse/acse-9-independent-research-project-wafflescore/tree/master/Notebooks).
 
 ## Compatibility notes
 This project is built and tested on Python 3.6.5
